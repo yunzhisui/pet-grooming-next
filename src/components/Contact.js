@@ -1,16 +1,70 @@
 'use client';
-import { MapPin, Phone, Calendar } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { MapPin, Phone, Calendar, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Contact() {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const pad = (n) => String(n).padStart(2, '0');
-  const defaultDate = tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate());
+ const pad = (n) => String(n).padStart(2, '0');
+ const defaultDate = tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate());
+  const formRef = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('感谢您的预约，我们会尽快与您联系！');
+    if (submitting) return;
+
+    setSubmitting(true);
+    setSubmitResult(null);
+
+    const form = formRef.current;
+    const data = {
+      name: form.name.value,
+      phone: form.phone.value,
+      petName: form.petName.value,
+      petType: form.pet.value,
+      service: form.service.value,
+      date: form.date.value,
+      time: form.time.value,
+      message: form.message.value,
+    };
+
+    fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || '提交失败');
+        return json;
+      })
+      .then((json) => {
+        setSubmitResult({ type: 'success', message: json.message });
+        form.reset();
+        form.date.value = defaultDate;
+        form.time.value = '10:00';
+      })
+      .catch((err) => {
+        setSubmitResult({ type: 'error', message: err.message });
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
+
+  const renderResult = () => {
+    if (!submitResult) return null;
+    const isSuccess = submitResult.type === 'success';
+    return (
+      <div className={'form-result form-result-' + submitResult.type}>
+        {isSuccess ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+        <span>{submitResult.message}</span>
+      </div>
+    );
   };
 
   return (
@@ -49,7 +103,8 @@ export default function Contact() {
               ))}
             </div>
           </div>
-          <form className="contact-form" onSubmit={handleSubmit}>
+          <form className="contact-form" onSubmit={handleSubmit} ref={formRef}>
+            {renderResult()}
             <h3>📋 快速预约</h3>
             {[
               { id: 'name', label: '您的称呼', type: 'text', placeholder: '如：张女士' },
@@ -60,6 +115,10 @@ export default function Contact() {
                 <input type={f.type} id={f.id} placeholder={f.placeholder} required />
               </div>
             ))}
+                        <div className="form-group">
+              <label htmlFor="petName">宠物名字</label>
+              <input type="text" id="petName" placeholder="如：旺财（选填）" />
+            </div>
             <div className="form-group">
               <label htmlFor="pet">宠物种类</label>
               <select id="pet">{['小型犬', '中型犬', '大型犬', '猫咪', '其他'].map((o) => <option key={o}>{o}</option>)}</select>
@@ -79,7 +138,13 @@ export default function Contact() {
               <label htmlFor="message">备注</label>
               <textarea id="message" placeholder="如有特殊需求请在此说明（如宠物性格、健康情况等）"></textarea>
             </div>
-            <button type="submit" className="form-submit">提交预约</button>
+            <button type="submit" className="form-submit" disabled={submitting}>
+              {submitting ? (
+                <><Loader2 size={18} className="spin" /> 提交中...</>
+              ) : (
+                '提交预约'
+              )}
+            </button>
           </form>
         </div>
       </div>
