@@ -69,8 +69,11 @@ export default function Contact() {
               <select id="service">{['精致洗护', '造型修剪', 'SPA 护理', '指甲护理', '宠物寄养', '健康检查'].map((o) => <option key={o}>{o}</option>)}</select>
             </div>
             <div className="form-group">
-              <label htmlFor="date">期望日期</label>
-              <input type="date" id="date" defaultValue={defaultDate} />
+              <label htmlFor="datetime">期望日期与时间</label>
+              <div style={{display:'flex',gap:10}}>
+                <input type="date" id="date" defaultValue={defaultDate} style={{flex:1}} />
+                <input type="time" id="time" defaultValue="10:00" style={{flex:1}} />
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="message">备注</label>
